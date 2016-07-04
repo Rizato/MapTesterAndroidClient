@@ -1,0 +1,18 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.rizato.gameview.GameView
+        android:id="@+id/game"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#ccc"
+        android:paddingBottom="40dp"
+        android:paddingStart="@dimen/activity_horizontal_padding"
+        android:paddingLeft="@dimen/activity_horizontal_padding"
+        app:horizontalTiles="@integer/game_view_default_tile_count"
+        app:verticalTiles="@integer/game_view_default_tile_count"
+        />
+
+</FrameLayout>

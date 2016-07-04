@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<declare-styleable name="GameView">
+    <attr name="horizontalTiles" format="integer" />
+    <attr name="verticalTiles" format="integer" />
+    <attr name="zoomEnabled" format="boolean" />
+    <attr name="imageTileSize" format="integer" />
+</declare-styleable>
+</resources>
