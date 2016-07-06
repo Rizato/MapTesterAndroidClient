@@ -16,6 +16,7 @@ import android.view.ScaleGestureDetector;
 import android.view.View;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -190,11 +191,11 @@ public class GameView extends View {
         int maxItemLength = (mHorizontalTileCount + 2) * (mVerticalTileCount + 2);
         int centerXOffset =  Math.max((contentWidth - (tileSize * mHorizontalTileCount)) / 2, 0);
         int centerYOffset = Math.max((contentHeight - (tileSize * mVerticalTileCount)) / 2, 0);
-        //Drawing all terrain
+        //Drawing all terrain. The server sends down by column
         for (int i = 0; i < mTerrain.size() && i < maxItemLength; i++) {
-            int x = i % (mHorizontalTileCount +2);
-            int y = i / (mHorizontalTileCount +2);
-            if (x < 1 || x > mHorizontalTileCount || y < 1 || y > mVerticalTileCount) {
+            int y = i % (mVerticalTileCount +2);
+            int x = i / (mVerticalTileCount +2);
+            if (y < 1 || y > mVerticalTileCount || x < 1 || x > mHorizontalTileCount) {
                 //These are out border tiles. Don't draw them.
                 continue;
             }
@@ -204,12 +205,12 @@ public class GameView extends View {
                 //Draw terrain at x,y
                 int imageWidthInTiles = bmp.getWidth() / mImageTileSize;
                 int imageHeightInTiles = bmp.getHeight() / mImageTileSize;
-                int start = (x-1) * tileSize + centerXOffset;
-                int top = (y-1) * tileSize + centerYOffset;
-                mDest.set(start,
+                int top = (y-1) * tileSize + centerXOffset;
+                int left = (x-1) * tileSize + centerYOffset;
+                mDest.set(left,
                         top,
-                        (start + imageHeightInTiles * tileSize),
-                        (top + imageWidthInTiles * tileSize));
+                        (left + imageWidthInTiles * tileSize),
+                        (top + imageHeightInTiles * tileSize));
                 canvas.drawBitmap(bmp,
                         null,
                         mDest,
@@ -225,8 +226,8 @@ public class GameView extends View {
                 if (bmp != null) {
                     int tileWidthInPixels  = bmp.getWidth() / mImageTileSize;
                     int tileHeightInPixels = bmp.getHeight() / mImageTileSize;
-                    int start = (item.getX()-1) * tileSize + centerXOffset;
-                    int top = (item.getY()-1) * tileSize + centerYOffset;
+                    int start = (item.getX()) * tileSize + centerXOffset;
+                    int top = (item.getY()) * tileSize + centerYOffset;
                     mDest.set(start,
                             top,
                             (start + tileWidthInPixels * tileSize),

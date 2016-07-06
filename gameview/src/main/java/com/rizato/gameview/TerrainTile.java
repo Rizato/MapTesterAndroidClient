@@ -49,4 +49,24 @@ public class TerrainTile {
     public int getBorderPriority() {
         return mBorderPriority;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        return o != null
+                && o instanceof TerrainTile
+                && ((TerrainTile) o).mIsInBorderEnabled == mIsInBorderEnabled
+                && ((TerrainTile) o).mIsOutBorderEnabled == mIsOutBorderEnabled
+                && ((TerrainTile) o).mTile == mTile
+                && ((TerrainTile) o).mHasBorders == mHasBorders
+                && ((TerrainTile) o).mBorderPriority == mBorderPriority;
+    }
+
+    @Override
+    public int hashCode() {
+        return mTile
+                * mBorderPriority
+                * (mIsInBorderEnabled ? 1 << 30 : 1)
+                * (mIsOutBorderEnabled ? 1 << 31 : 1)
+                * (mHasBorders ? 1 << 29 : 1);
+    }
 }

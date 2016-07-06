@@ -18,8 +18,8 @@ public class ItemTile {
 
     public ItemTile(int coordinates, int tile) {
         mTile = tile;
-        mX = coordinates & 0xF;
-        mY = coordinates >> 4 & 0xF;
+        mX = coordinates & 0xFF;
+        mY = coordinates >> 8 & 0xFF;
     }
 
     public int getTile(){
@@ -32,5 +32,19 @@ public class ItemTile {
 
     public int getY() {
         return mY;
+    }
+
+    @Override
+    public int hashCode() {
+        return mX * mY * mTile;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o != null
+                && o instanceof ItemTile
+                && ((ItemTile) o).mTile == mTile
+                && ((ItemTile) o).mX == mX
+                && ((ItemTile) o).mY == mY;
     }
 }

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">GameClient</string>
+    <string name="send">Send</string>
 </resources>

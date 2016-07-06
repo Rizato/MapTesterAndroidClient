@@ -1,26 +1,25 @@
 package com.rizato.gameclient;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.SparseArray;
 
+import com.rizato.gameclient.networking.NetworkHandlerThread;
+import com.rizato.gameclient.networking.Protocol;
 import com.rizato.gameview.GameView;
-import com.rizato.gameview.ItemTile;
-import com.rizato.gameview.TerrainTile;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements GameView.GameViewCallbacks{
 
     private static final String TAG = MainActivity.class.getSimpleName();
-    private List<ItemTile> items;
+    private NetworkHandlerThread networkThread;
     private GameView game;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,55 +32,93 @@ public class MainActivity extends AppCompatActivity implements GameView.GameView
         super.onStart();
         game = (GameView) findViewById(R.id.game);
         game.addGameViewCallbacks(this);
-        //generate list of assets & load values
-        SparseArray<Bitmap> map = new SparseArray<>();
-        try {
-            InputStream grassStream = getAssets().open("art/game/terrain/parquet.gif");
-            Bitmap grass = BitmapFactory.decodeStream(grassStream);
-            grassStream.close();
-            map.put(0, grass);
-            InputStream playerStream = getAssets().open("art/game/players/dwarf.S.gif");
-            Bitmap player = BitmapFactory.decodeStream(playerStream);
-            grassStream.close();
-            map.put(1, player);
-        } catch (IOException e) {
-            e.printStackTrace();
+        ClientApplication app = (ClientApplication) getApplication();
+        Handler handler = new Handler(new DisplayCallbacks());
+        if (app.getNetworkThread() == null) {
+            app.setNetworkThread(new NetworkHandlerThread(this,
+                    "Network",
+                    handler,
+                    "map.rizato.com",
+                    2222));
+            app.getNetworkThread().start();
+            app.getNetworkThread().prepare();
+            app.getNetworkThread().login("paladin", " ");
+        } else {
+            app.getNetworkThread().setUiHandler(handler);
         }
-        List<TerrainTile> terrain = new ArrayList<>();
-        for (int i = 0; i < 13*30; i++) {
-            //Adding 500 tiles. No borders, no priority
-            terrain.add(new TerrainTile(0));
-        }
-        items = new ArrayList<>();
-        //Adding one to 7, 7
-        items.add(new ItemTile(7 << 4 | 7, 1));
-
-        game.setMapping(map);
-        game.setItems(items);
-        game.setTerrain(terrain);
+        networkThread = app.getNetworkThread();
     }
 
     @Override
     public void onTileCountChanged(int horizontal, int vertical) {
-        Log.d(TAG, "onTileCountChanged: "+ horizontal + " "+vertical);
-        List<TerrainTile> terrain = new ArrayList<>();
-        for (int i = 0; i < (horizontal+2)*(vertical+2); i++) {
-            //Adding 500 tiles. No borders, no priority
-            terrain.add(new TerrainTile(0));
-        }
-        items = new ArrayList<>();
-        //Adding one to 7, 7
-        items.add(new ItemTile((vertical/2+1) << 4 | (horizontal/2+1), 1));
-        game.setAll(terrain, items, horizontal, vertical);
+        networkThread.sendCommand(String.format(Locale.getDefault(),
+                "#view %d %d",
+                horizontal,
+                vertical));
     }
 
     @Override
     public void onTileClicked(int x, int y) {
-        items = new ArrayList<>();
-        //Adding one to 7, 7
-        items.add(new ItemTile(y << 4 | x, 1));
-        if (game != null) {
-            game.setItems(items);
+        networkThread.sendCommand(String.format(Locale.getDefault(),
+                "mouse %d %d",
+                x,
+                y));
+        Log.d(TAG, "onTileClicked: "+ x + " " + y);
+    }
+
+    public class DisplayCallbacks implements Handler.Callback {
+        public static final int LOG_RESPONSE = 0;
+        public static final int SCREEN_RESPONSE = 1;
+        public static final int MAP_RESPONSE = 2;
+        public static final int QUIT_RESPONSE = 3;
+        public static final int TEXT_RESPONSE = 4;
+
+        @Override
+        public boolean handleMessage(Message msg) {
+            switch (msg.what) {
+                case LOG_RESPONSE:
+                    logResponse(msg);
+                    return true;
+                case SCREEN_RESPONSE:
+                    screeResponse(msg);
+                    return true;
+                case MAP_RESPONSE:
+                    mapResponse(msg);
+                    return true;
+                case QUIT_RESPONSE:
+                    quitResponse(msg);
+                    return true;
+                case TEXT_RESPONSE:
+                    textResponse(msg);
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public void logResponse(Message msg) {
+
+        }
+
+        public void screeResponse(Message msg) {
+            Protocol.Screen screen = (Protocol.Screen) msg.obj;
+            game.setTerrain(screen.terrain);
+            game.setItems(screen.items);
+        }
+
+        public void quitResponse(Message msg) {
+
+        }
+
+        public void textResponse(Message msg) {
+            Protocol.TextResponse text = (Protocol.TextResponse) msg.obj;
+            Log.d(TAG, "textResponse: "+text.message);
+
+        }
+
+        public void mapResponse(Message msg) {
+            SparseArray<Bitmap> map = (SparseArray<Bitmap>) msg.obj;
+            game.setMapping(map);
         }
     }
 }
