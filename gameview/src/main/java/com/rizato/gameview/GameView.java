@@ -7,6 +7,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Build;
+import android.support.annotation.IntDef;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseArray;
@@ -16,7 +17,6 @@ import android.view.ScaleGestureDetector;
 import android.view.View;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -36,8 +36,8 @@ import java.util.List;
 public class GameView extends View {
     private static final String TAG = GameView.class.getSimpleName();
     //Attributes
-    private int mVerticalTileCount;
-    private int mHorizontalTileCount;
+    private volatile int mVerticalTileCount;
+    private volatile int mHorizontalTileCount;
     private int mImageTileSize;
     private boolean mIsZoomEnabled;
 
@@ -83,7 +83,6 @@ public class GameView extends View {
      * Creating callback list.
      * Setting up gesture detectors.
      * Loading default settings
-     * @param context
      */
     private void prep(Context context) {
         mCallbacks = new ArrayList<>();
@@ -100,8 +99,6 @@ public class GameView extends View {
 
     /**
      * Loads data from the TypedArray (All the custom styles)
-     * @param attrs
-     * @param defStyle
      */
     private void init(AttributeSet attrs, int defStyle) {
         // Load attributes
@@ -272,7 +269,7 @@ public class GameView extends View {
         switch (heightMode) {
             case MeasureSpec.AT_MOST:
                 //match parent?
-                height = tileSize* mVerticalTileCount + mPaddingTop + mPaddingBottom;
+                height = tileSize * mVerticalTileCount + mPaddingTop + mPaddingBottom;
                 height = Math.min(height, heightConstraint);
                 break;
             case MeasureSpec.EXACTLY:
@@ -281,7 +278,7 @@ public class GameView extends View {
                 break;
             case MeasureSpec.UNSPECIFIED:
                 //wrap_content
-                height = tileSize* mVerticalTileCount + mPaddingTop + mPaddingBottom;
+                height = tileSize * mVerticalTileCount + mPaddingTop + mPaddingBottom;
                 break;
         }
         int tileSizeByH = (height - mPaddingTop - mPaddingBottom)/ mVerticalTileCount;
@@ -299,23 +296,29 @@ public class GameView extends View {
     }
 
     public void setVerticalTileCount(int count) {
-        mVerticalTileCount = count;
-        mScale = 1;
+        if (mVerticalTileCount != count ) {
+            mVerticalTileCount = count;
+            mScale = 1;
+        }
         invalidate();
         requestLayout();
     }
 
     public void setHorizontalTileCount(int count) {
-        mHorizontalTileCount = count;
-        mScale = 1;
+        if (mHorizontalTileCount != count ) {
+            mHorizontalTileCount = count;
+            mScale = 1;
+        }
         invalidate();
         requestLayout();
     }
 
     public void setTileCount(int horizontal, int vertical) {
-        mHorizontalTileCount = horizontal;
-        mVerticalTileCount = vertical;
-        mScale = 1;
+        if (mHorizontalTileCount != horizontal && mVerticalTileCount != vertical) {
+            mHorizontalTileCount = horizontal;
+            mVerticalTileCount = vertical;
+            mScale = 1;
+        }
         invalidate();
         requestLayout();
     }
@@ -349,10 +352,12 @@ public class GameView extends View {
     public void setAll(List<TerrainTile> terrain, List<ItemTile> items, int horizontal, int vertical) {
         mTerrain = terrain;
         mObjects = items;
-        mHorizontalTileCount = horizontal;
-        mVerticalTileCount = vertical;
-        //TODO animate scale to 1 (This could end up looking terrible)
-        mScale = 1;
+        if (mHorizontalTileCount != horizontal && mVerticalTileCount != vertical) {
+            mHorizontalTileCount = horizontal;
+            mVerticalTileCount = vertical;
+            //TODO animate scale to 1 (This could end up looking terrible)
+            mScale = 1;
+        }
         invalidate();
         requestLayout();
     }
@@ -390,8 +395,19 @@ public class GameView extends View {
     }
 
     public interface GameViewCallbacks {
+        @IntDef({NORTH, NORTHEAST, NORTHWEST, SOUTH, SOUTHWEST, SOUTHEAST, EAST, WEST})
+        @interface Direction {}
+        int NORTH = 0;
+        int NORTHEAST = 1;
+        int NORTHWEST = 2;
+        int SOUTH = 3;
+        int SOUTHEAST = 4;
+        int SOUTHWEST = 5;
+        int WEST = 6;
+        int EAST = 7;
         void onTileCountChanged(int horizontal, int vertical);
         void onTileClicked(int x, int y);
+        void onSwipe(@Direction int direction);
     }
 
     private class ScaleListener implements ScaleGestureDetector.OnScaleGestureListener {
@@ -443,7 +459,7 @@ public class GameView extends View {
             //No need to add one, because we want clicks to be in the scale of the visual tiles
             int windowWidth = getWidth() - mPaddingEnd - mPaddingStart;
             int windowHeight = getHeight() - mPaddingStart - mPaddingBottom;
-            int clickedX = (int)(x /  (windowWidth) * mHorizontalTileCount+ .5);
+            int clickedX = (int)(x /  (windowWidth) * mHorizontalTileCount + .5);
             int clickedY = (int)(y /  (windowHeight) * mVerticalTileCount + .5);
             if (clickedX > 0
                     && clickedX <= mHorizontalTileCount
@@ -452,7 +468,7 @@ public class GameView extends View {
                 //Hit callbacks so they can interpret
                 if (mCallbacks != null) {
                     for (GameViewCallbacks callbacks : mCallbacks) {
-                        callbacks.onTileClicked(clickedX, clickedY);
+                        callbacks.onTileClicked(clickedX-1, clickedY-1);
                     }
                 }
             }
@@ -471,6 +487,32 @@ public class GameView extends View {
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            int degrees = (int) (Math.toDegrees(Math.atan2(velocityY,velocityX))+.5);
+            @GameViewCallbacks.Direction int direction = GameViewCallbacks.NORTH;
+            degrees += 180;
+            Log.d(TAG, "onFling: "+degrees);
+            if (degrees >=338 || degrees < 23) {
+                direction = GameViewCallbacks.WEST;
+            } else if (degrees >=23 && degrees < 68) {
+                direction = GameViewCallbacks.NORTHWEST;
+            } else if (degrees >= 68 && degrees < 113) {
+                direction = GameViewCallbacks.NORTH;
+            } else if (degrees >= 113 && degrees < 158) {
+                direction = GameViewCallbacks.NORTHEAST;
+            } else if (degrees >= 158 && degrees < 203) {
+                direction = GameViewCallbacks.EAST;
+            } else if (degrees >= 203 && degrees < 248) {
+                direction = GameViewCallbacks.SOUTHEAST;
+            } else if (degrees >= 248 && degrees < 293) {
+                direction = GameViewCallbacks.SOUTH;
+            } else if (degrees >= 293 && degrees < 338) {
+                direction = GameViewCallbacks.SOUTHWEST;
+            }
+            if (mCallbacks != null) {
+                for (GameViewCallbacks callbacks: mCallbacks) {
+                    callbacks.onSwipe(direction);
+                }
+            }
             return true;
         }
     }
