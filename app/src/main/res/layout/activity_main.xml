@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:descendantFocusability="beforeDescendants"
     tools:context="com.rizato.gameclient.MainActivity">
     <com.rizato.gameview.GameView
+        android:layout_alignParentTop="true"
         android:id="@+id/game"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -16,23 +18,30 @@
         app:zoomEnabled="true"
         app:imageTileSize="@integer/gave_view_default_tile_size"
         />
-    <ListView
-        android:layout_weight="1"
-        android:layout_width="match_parent"
-        android:layout_height="0dp">
-    </ListView>
+<android.support.v7.widget.RecyclerView
+    android:layout_below="@+id/game"
+    android:layout_above="@+id/commands"
+    android:id="@+id/chat"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingBottom="@dimen/minimum_input_height"/>
     <LinearLayout
+        android:id="@+id/commands"
+        android:layout_alignParentBottom="true"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="@dimen/minimum_input_height"
         android:orientation="horizontal">
-        <!--<EditText-->
-            <!--android:inputType="text"-->
-            <!--android:layout_weight="1"-->
-            <!--android:layout_width="0dp"-->
-            <!--android:layout_height="wrap_content" />-->
+        <EditText
+            android:id="@+id/command"
+            android:inputType="text"
+            android:hint="@string/enter_command"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content" />
         <Button
+            android:id="@+id/send"
             android:text="@string/send"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
     </LinearLayout>
-</LinearLayout>
+</RelativeLayout>

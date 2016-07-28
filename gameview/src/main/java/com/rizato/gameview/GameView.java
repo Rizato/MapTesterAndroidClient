@@ -158,10 +158,13 @@ public class GameView extends View {
         return flag;
     }
 
+    /**
+     * Draws all the tiles on screen, according to the dimensions.
+     * Also, draws all the objects onto the screen as well.
+     */
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
         //Making sure we have padding
         loadPadding();
         //Getting the allowable height and width
@@ -394,6 +397,10 @@ public class GameView extends View {
         mCallbacks.remove(listener);
     }
 
+    /**
+     * Interface with callbacks from the game view, to be implemented by the activty or fragment that
+     * contains the game view.
+     */
     public interface GameViewCallbacks {
         @IntDef({NORTH, NORTHEAST, NORTHWEST, SOUTH, SOUTHWEST, SOUTHEAST, EAST, WEST})
         @interface Direction {}
@@ -410,6 +417,10 @@ public class GameView extends View {
         void onSwipe(@Direction int direction);
     }
 
+    /**
+     * Class for listening to pinch to zoom. Computes the number of tiles that can be shown,
+     * and hits the callback.
+     */
     private class ScaleListener implements ScaleGestureDetector.OnScaleGestureListener {
 
         @Override
@@ -440,6 +451,9 @@ public class GameView extends View {
         }
     }
 
+    /**
+     * Class that listens to taps, and converts the x,y from the view into tiles x, y of the game view.
+     */
     private class TapListener implements GestureDetector.OnGestureListener{
 
         @Override

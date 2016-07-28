@@ -11,6 +11,8 @@
         android:paddingBottom="40dp"
         android:paddingStart="@dimen/activity_horizontal_padding"
         android:paddingLeft="@dimen/activity_horizontal_padding"
+        android:paddingRight="@dimen/activity_horizontal_padding"
+        android:paddingEnd="@dimen/activity_horizontal_padding"
         app:horizontalTiles="@integer/game_view_default_tile_count"
         app:verticalTiles="@integer/game_view_default_tile_count"
         />

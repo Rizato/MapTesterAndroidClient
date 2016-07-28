@@ -1,7 +1,6 @@
 package com.rizato.gameclient.networking;
 
 import android.content.Context;
-import android.content.MutableContextWrapper;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
@@ -24,8 +23,6 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.zip.InflaterInputStream;
@@ -41,60 +38,66 @@ public class NetworkHandlerThread extends HandlerThread {
     private static final int COMMAND = 1;
     private static final int START = 2;
 
-    private NetworkHandlerThreadCallbacks mCallbacks;
+    private final NetworkHandlerThreadCallbacks mCallbacks;
 
-    Handler mHandler;
+    private Handler mHandler;
 
+    @SuppressWarnings("SameParameterValue")
     public NetworkHandlerThread(Context context, String name, Handler uiHandler, String url, int port) {
         super(name);
         mCallbacks = openConnection(context, uiHandler, url, port);
     }
 
+    @SuppressWarnings("unused")
     public NetworkHandlerThread(Context context, String name, int priority, Handler uiHandler, String url, int port) {
         super(name, priority);
         mCallbacks = openConnection(context, uiHandler, url, port);
     }
 
-    @Override
-    protected void onLooperPrepared() {
-        super.onLooperPrepared();
-
-    }
-
+    //Sets up the looper. Starts the thread.
     public void prepare() {
         mHandler = new Handler(getLooper(), mCallbacks);
         mHandler.obtainMessage(START).sendToTarget();
     }
 
+    //Opens a new connection to the given url
     private NetworkHandlerThreadCallbacks openConnection(Context context, Handler uiHandler, String url, int port) {
-
         return new NetworkHandlerThreadCallbacks(url, port, context, uiHandler);
     }
 
-    public void shutdown() throws IOException {
+    @SuppressWarnings("unused")
+    public void shutdown() {
         mCallbacks.shutdown();
     }
 
+    //Changes the UI handler. (For when we start a new activity)
     public void setUiHandler(Handler handler) {
         mCallbacks.changeHandler(handler);
     }
 
-    public void login(String username, String password) {
+    //Sends login data to the server
+    @SuppressWarnings("SameParameterValue")
+    public void login(@SuppressWarnings("SameParameterValue") String username, String password) {
         mHandler.obtainMessage(LOGIN, String.format("%s\n%s", username, password)).sendToTarget();
     }
 
+    //Sends a text command to the server
     public void sendCommand(String command) {
         mHandler.obtainMessage(COMMAND, command).sendToTarget();
     }
 
+    /**
+     * This class extends Handler.Callback. It implements handle message and holds the actual network
+     * connection
+     */
     private static class NetworkHandlerThreadCallbacks implements Handler.Callback {
         private ReadProtocol reader;
         private OutputStream mOutputStream;
         Socket mSocket;
-        String url;
-        int port;
-        Context mContext;
-        Handler mUiHandler;
+        final String url;
+        final int port;
+        final Context mContext;
+        final Handler mUiHandler;
 
         public NetworkHandlerThreadCallbacks(String url, int port, Context context, Handler uiHandler) {
             mContext = context;
@@ -187,15 +190,15 @@ public class NetworkHandlerThread extends HandlerThread {
     }
 
     /**
-     * Probably should have just done a handler thread
+     * This class reads from the network connection until cancelled.
      */
     private static class ReadProtocol implements Runnable {
         private static final String TAG = ReadProtocol.class.getSimpleName();
-        DataInputStream mInputStream;
+        final DataInputStream mInputStream;
         private volatile boolean cancelled;
         private volatile Handler mUiHandler;
-        private Context mContext;
-        SparseArray<Bitmap> tiles;
+        private final Context mContext;
+        final SparseArray<Bitmap> tiles;
         private Protocol.Screen mLastScreen;
 
         public ReadProtocol(Context context, Handler uiHandler, DataInputStream inputStream) {
@@ -210,6 +213,7 @@ public class NetworkHandlerThread extends HandlerThread {
             cancelled = true;
         }
 
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         private boolean isCancelled() {
             return cancelled;
         }
@@ -222,20 +226,14 @@ public class NetworkHandlerThread extends HandlerThread {
             while (!isCancelled()) {
                 try {
                     if (mInputStream.available() > 0) {
-//                        Log.d(TAG, "available");
                         byte command = mInputStream.readByte();
-//                        Log.d(TAG, String.format("command %d", command));
                         byte temp = mInputStream.readByte();
-//                        Log.d(TAG, String.format("temp %d", temp));
                         int low = ((int) temp) < 0 ? temp + 256 :temp;
                         temp = mInputStream.readByte();
-//                        Log.d(TAG, String.format("temp %d", temp));
                         int mid = ((int) temp)< 0 ? temp + 256 : temp;
                         temp = mInputStream.readByte();
-//                        Log.d(TAG, String.format("temp %d", temp));
                         int high = ((int) temp) < 0 ? temp + 256 : temp;
                         int length = low << 16 | mid << 8 | high;
-//                        Log.d(TAG, String.format("Expected Length %d", length));
                         Integer actual = 0;
                         while (mInputStream.available() < length && !isCancelled()) {
                             //Sleeping if not enough data
@@ -277,11 +275,9 @@ public class NetworkHandlerThread extends HandlerThread {
                                 actual += skip(mInputStream, length);
                                 break;
                         }
-//                        Log.d(TAG, String.format("expected: %d actual %d", length, actual));
+                        Log.d(TAG, String.format("expected: %d actual %d", length, actual));
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (InterruptedException e) {
+                } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 }
             }
@@ -303,14 +299,14 @@ public class NetworkHandlerThread extends HandlerThread {
             int size = zipped.readInt();
             int width = (size & 0xffff0000) >> 16;
             int height = size & 0xffff;
-//            Log.d(TAG, String.format("width %d height %d", width, height));
+            Log.d(TAG, String.format("width %d height %d", width, height));
             int zlength = zipped.readInt();
             int ulength = zipped.readInt();
             byte[] buf = new byte[zlength];
-            zipped.read(buf, 0, zlength);
+            //noinspection UnusedAssignment
+            int len = zipped.read(buf, 0, zlength);
             ByteArrayInputStream bais = new ByteArrayInputStream(buf);
             DataInputStream stream = new DataInputStream(new InflaterInputStream(bais));
-//            Log.d(TAG, "readZippedScreen Tiles");
             List<TerrainTile> terrain = new ArrayList<>();
             for (int i = 0; i < height; i++){
                 for (int j = 0; j < width; j++){
@@ -334,11 +330,21 @@ public class NetworkHandlerThread extends HandlerThread {
                 items.add(new ItemTile(x, y, tile));
             }
             Protocol.Screen screen = new Protocol.Screen();
+            screen.y = height -2;
+            screen.x = width -2;
             screen.items = items;
             screen.terrain = terrain;
             if (screen != mLastScreen) {
+                if (mLastScreen == null || mLastScreen.x == screen.x && mLastScreen.y == screen.y) {
+                    screen.x = -1;
+                    screen.y = -1;
+                    Log.d(TAG, "readZippedScreen: Didn't resize");
+                }
                 mUiHandler.obtainMessage(MainActivity.DisplayCallbacks.SCREEN_RESPONSE, screen).sendToTarget();
                 mLastScreen = screen;
+                mLastScreen.y = height-2;
+                mLastScreen.x = width-2;
+
             } else {
                 Log.d(TAG, "readZippedScreen: Same. Skipping");
             }
@@ -347,9 +353,11 @@ public class NetworkHandlerThread extends HandlerThread {
 
         private int readTiles(DataInputStream zipped) throws IOException {
             int zlength = zipped.readInt();
+            //noinspection UnusedAssignment
             int ulength = zipped.readInt();
             byte[] buf = new byte[zlength];
-            zipped.read(buf, 0, zlength);
+            //noinspection UnusedAssignment
+            int len = zipped.read(buf, 0, zlength);
             ByteArrayInputStream bais = new ByteArrayInputStream(buf);
             DataInputStream stream = new DataInputStream(new InflaterInputStream(bais));
             while (bais.available() > 0){
@@ -389,6 +397,7 @@ public class NetworkHandlerThread extends HandlerThread {
         }
 
         private int readLogin(DataInputStream stream) throws IOException {
+            //noinspection UnusedAssignment
             int version = stream.readInt();
             //Log.d(TAG, String.format("Version: %d", version));
             //Log.d(TAG, String.format("VERSION: %d.%d", (version & 0xffff0000) >> 16, (version & 0xffff)));
