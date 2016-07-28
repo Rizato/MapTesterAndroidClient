@@ -57,11 +57,23 @@ The rest are setters and getters. Any setter will cause the view to redraw. The 
 
 #### Listening for user input
 
-The gameview defines a GameViewCallbacks interface you can implement to listed for two actions.
+The gameview defines a GameViewCallbacks interface you can implement to listed for three actions.
 
 
 * **onTileClicked(x, y)** Gives the x,y in terms of tiles when one is clicked
 * **onTileCountChanged(horizontal, vertical)** Gives the new dimensions of the grid. This is called as a result of user pinch to zoom. Using setters will not result in a callback.
+* **onSwipe(@Direction int direction)** Gives the direction of a user swipe/fling.
+
+@Direction is defined as follows
+
+0. **NORTH**
+1. **NORTHEAST**
+2. **NORTHWEST**
+3. **SOUTH**
+4. **SOUTHEAST**
+5. **SOUTHWEST**
+6. **WEST**
+7. **EAST**
 
 ## TerrainTile
 
